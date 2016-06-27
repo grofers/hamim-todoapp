@@ -16,20 +16,8 @@ Including another URLconf
 from django.conf.urls import include, url
 from django.contrib import admin
 
-from rest_framework.routers import DefaultRouter
-
-
-from users.views import UserViewSet
-from tasks.views import TaskViewSet
-
-
-# Create a router and register our viewsets with it.
-router = DefaultRouter()
-
-router.register(r'users', UserViewSet, base_name='users')
-router.register(r'tasks', TaskViewSet, base_name='tasks')
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^api/v1/', include(router.urls)),
+    url(r'^api/v1/', include('tasks.urls')),
 ]
