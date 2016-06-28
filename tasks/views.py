@@ -21,7 +21,18 @@ def hashed_password(old_pass):
 @api_view(['POST', 'GET'])
 def list_tasks(request, format = None):
     if request.method == 'GET':
-        tasks = Task.objects.all()
+        query_days = request.GET.get('days', None)
+        tasks = Task.objects.all().order_by('last_updated')
+
+        if query_days is not None:
+            query_days = int(query_days)
+            start_date = datetime.date.today()
+            end_date = start_date + timedelta(query_days + 1)
+            tasks = Task.objects.filter(
+                scheduled_time__gte=start_date,
+                scheduled_time__lte=end_date
+            ).order_by('scheduled_time')
+
         serializer = TaskSerializer(tasks, many=True)
         return Response(serializer.data)
 
