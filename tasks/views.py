@@ -39,6 +39,7 @@ def list_tasks(request, format = None):
         data = []
         totalCount = 0
         for task in tasks:
+            task['user_id'] = task['user']['id']
             del task['user']
             data.append(task)
             totalCount += 1
@@ -75,7 +76,6 @@ def list_tasks(request, format = None):
 
 @api_view(['GET', 'PUT'])
 def modify_tasks(request, pk, format=None):
-    u_id = User.objects.get(pk=pk)
     response = {}
     if request.method == 'GET':
         tasks = Task.objects.filter(id=pk)
@@ -120,7 +120,7 @@ def modify_tasks(request, pk, format=None):
             response['status'] = {'success': True,
                 'message': "Update Successful"}
             return Response(response,
-            status=status.HTTP_201_CREATED)
+            status=status.HTTP_200_OK)
         except:
             response['status'] = {'success': False,
                 'message': "Update Failed"}
@@ -153,14 +153,11 @@ def list_users(request, format=None):
                 response['status'] = {'success': True,
                     'message': "Created Successfully"}
                 return Response(response,
-                    status=status.HTTP_201_CREATED)
+                    status=status.HTTP_200_CREATED)
         except:
             response['status'] = {'success': False,
                 'message': "Creation Failed"}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(
-            serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET', 'PUT'])
@@ -187,7 +184,7 @@ def modify_users(request, pk, format = None):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data,
-                    status=status.HTTP_201_CREATED)
+                    status=status.HTTP_200_OK)
         except:
             response['status'] = {'success': False,
                 'message': "update failed"}
