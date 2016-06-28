@@ -53,7 +53,7 @@ def list_tasks(request, format = None):
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT'])
 def modify_tasks(request, pk, format=None):
     u_id = User.objects.get(pk=pk)
     if request.method == 'GET':
@@ -62,7 +62,40 @@ def modify_tasks(request, pk, format=None):
         try:
             return Response(serializer.data)
         except:
-            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST)
+
+    if request.method == 'PUT':
+        data = JSONParser().parse(request)
+        response = {}
+        try:
+            user = User.objects.get(id=data['user_id'])
+            description = data['description']
+            scheduled_time = data['scheduled_time']
+            last_updated = datetime.datetime.now()
+            data['last_updated'] = last_updated
+            pending = data['pending']
+            updated, created = Task.objects.update_or_create(
+                user=user,
+                description=description,
+                scheduled_time=scheduled_time,
+                last_updated=last_updated,
+                pending=pending,
+                defaults=data
+            )
+            updated.save()
+            response['status'] = {'success': True,
+                'message': "update successful"}
+            return Response(response,
+                status=status.HTTP_201_CREATED)
+        except:
+            response['status'] = {'success': False,
+                'message': "update failed"}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(['GET', 'POST'])
