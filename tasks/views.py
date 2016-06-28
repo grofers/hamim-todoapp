@@ -47,7 +47,7 @@ def modify_tasks(request, pk, format=None):
     u_id = User.objects.get(pk=pk)
     if request.method == 'GET':
         tasks = Task.objects.all().filter(user=u_id)
-        serializer = ScheduleSerializer(schedule, many=True)
+        serializer = TaskSerializer(tasks, many=True)
         try:
             return Response(serializer.data)
         except:
@@ -65,13 +65,23 @@ def list_users(request, format=None):
         return Response(responses)
 
     if request.method == 'POST':
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,
-                status=status.HTTP_201_CREATED)
-        return Response(serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST)
+        data = JSONParser().parse(request)
+        response = {}
+        try:
+            new_pass = hashed_password(data['password'])
+            data['password'] = new_pass
+            serializer = UserSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data,
+                    status=status.HTTP_201_CREATED)
+        except:
+            response['status'] = {'success': False,
+                'message': "creation failed"}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET', 'PUT'])
