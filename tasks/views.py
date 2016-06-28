@@ -33,42 +33,74 @@ def list_tasks(request, format = None):
                 scheduled_time__lte=end_date
             ).order_by('scheduled_time')
 
+        response = {}
         serializer = TaskSerializer(tasks, many=True)
-        return Response(serializer.data)
+        tasks = serializer.data
+        data = []
+        totalCount = 0
+        for task in tasks:
+            del task['user']
+            data.append(task)
+            totalCount += 1
+
+        try:
+            response['data'] = {'tasks': data}
+            response['status'] = {'success': True}
+            response['_metadata'] = {'totalCount': totalCount,
+                'days': (0 if query_days is None else query_days)}
+            return Response(response,
+                status=status.HTTP_200_OK)
+        except:
+            response['status'] = {'success': False}
+            return Response(response,
+                status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'POST':
         data = JSONParser().parse(request)
         response = {}
         try:
             user = User.objects.get(id=data['user_id'])
+            pending = True if 'pending' not in data else data['pending']
             task = Task(user=user, description=data['description'],
-                scheduled_time=data['scheduled_time'])
+                scheduled_time=data['scheduled_time'], pending=pending)
             task.save()
             response['status'] = {'success': True,
-                'message': "Entry Added"}
+                'message': "New Task Created"}
             return Response(response, status=status.HTTP_201_CREATED)
         except:
             response['status'] = {'success': False,
-                'message': "Entry not added"}
+                'message': "Task Creation Failed"}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET', 'PUT'])
 def modify_tasks(request, pk, format=None):
     u_id = User.objects.get(pk=pk)
+    response = {}
     if request.method == 'GET':
-        tasks = Task.objects.all().filter(user=u_id)
+        tasks = Task.objects.filter(id=pk)
         serializer = TaskSerializer(tasks, many=True)
+        tasks = serializer.data
+        data = []
+        for task in tasks:
+            del task['user']
+            data.append(task)
+
         try:
-            return Response(serializer.data)
+            response['data'] = {'tasks': data}
+            response['status'] = {'success': True}
+            return Response(response,
+                status=status.HTTP_200_OK)
         except:
-            return Response(serializer.errors,
+            response['status'] = {'success': False}
+            return Response(response,
                 status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'PUT':
         data = JSONParser().parse(request)
         response = {}
         try:
+            id = pk
             user = User.objects.get(id=data['user_id'])
             description = data['description']
             scheduled_time = data['scheduled_time']
@@ -76,21 +108,22 @@ def modify_tasks(request, pk, format=None):
             data['last_updated'] = last_updated
             pending = data['pending']
             updated, created = Task.objects.update_or_create(
+                id=id,
                 user=user,
                 description=description,
                 scheduled_time=scheduled_time,
                 last_updated=last_updated,
                 pending=pending,
                 defaults=data
-            )
+                )
             updated.save()
             response['status'] = {'success': True,
-                'message': "update successful"}
+                'message': "Update Successful"}
             return Response(response,
-                status=status.HTTP_201_CREATED)
+            status=status.HTTP_201_CREATED)
         except:
             response['status'] = {'success': False,
-                'message': "update failed"}
+                'message': "Update Failed"}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
@@ -117,11 +150,13 @@ def list_users(request, format=None):
             serializer = UserSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
-                return Response(serializer.data,
+                response['status'] = {'success': True,
+                    'message': "Created Successfully"}
+                return Response(response,
                     status=status.HTTP_201_CREATED)
         except:
             response['status'] = {'success': False,
-                'message': "creation failed"}
+                'message': "Creation Failed"}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
